@@ -6,17 +6,17 @@
   <meta name="theme-color" content="#101014">
   <title>Watch - WeTube</title>
   <style>
-    :root{color-scheme:dark;--bg:#101014;--text:#f5f5f7;--muted:#a5a5b0;--accent:#ff4545}
+    :root{color-scheme:dark;--bg:#101014;--panel:#1b1b22;--text:#f5f5f7;--muted:#a5a5b0;--accent:#ff4545;--border:#303039}\n    :root[data-theme="light"]{color-scheme:light;--bg:#f5f5f7;--panel:#fff;--text:#202027;--muted:#666675;--border:#dedee5}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
-    header{padding:22px clamp(18px,5vw,64px);border-bottom:1px solid #303039}.brand{font-size:1.8rem;font-weight:850;letter-spacing:-1px;color:var(--text);text-decoration:none}.brand span{color:var(--accent)}
-    main{max-width:1100px;margin:34px auto;padding:0 20px 60px}a.back{color:#ff7777;text-decoration:none;display:inline-block;margin-bottom:20px}
+    header{padding:18px clamp(18px,5vw,64px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{font-size:1.8rem;font-weight:850;letter-spacing:-1px;color:var(--text);text-decoration:none}.brand span{color:var(--accent)}
+    .theme-button{border:1px solid var(--border);border-radius:9px;background:var(--panel);color:var(--text);font:600 .9rem system-ui;padding:10px 14px;cursor:pointer}\n    main{max-width:1100px;margin:34px auto;padding:0 20px 60px}a.back{color:#ff7777;text-decoration:none;display:inline-block;margin-bottom:20px}
     h1{font-size:clamp(1.4rem,3vw,2rem);margin:0 0 20px}.player{width:100%;aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden}
     .player iframe,.player video{width:100%;height:100%;border:0;display:block}.external{display:inline-block;margin-top:18px;color:#ff7777}
     #status{color:var(--muted)}.error{color:#ff8b8b}
   </style>
 </head>
 <body>
-  <header><a class="brand" href="./">We<span>Tube</span></a></header>
+  <header><a class="brand" href="./">We<span>Tube</span></a><button class="theme-button" id="theme-toggle" type="button">☀ מצב בהיר</button></header>
   <main>
     <a class="back" href="./">← Back to videos</a>
     <h1 id="title">Loading…</h1>
@@ -75,6 +75,22 @@
         }
       }catch(error){title.textContent="Unable to play video";status.textContent=error.message;status.className="error"}
     }
+    const themeToggle=document.getElementById("theme-toggle");
+    function applyTheme(theme){
+      document.documentElement.dataset.theme=theme;
+      const light=theme==="light";
+      themeToggle.textContent=light?"☾ מצב כהה":"☀ מצב בהיר";
+      themeToggle.setAttribute("aria-label",light?"Switch to dark mode":"Switch to light mode");
+      document.querySelector('meta[name="theme-color"]').content=light?"#f5f5f7":"#101014";
+    }
+    let savedTheme="dark";
+    try{savedTheme=localStorage.getItem("wetube-theme")||"dark"}catch{}
+    applyTheme(savedTheme==="light"?"light":"dark");
+    themeToggle.addEventListener("click",()=>{
+      const next=document.documentElement.dataset.theme==="light"?"dark":"light";
+      applyTheme(next);
+      try{localStorage.setItem("wetube-theme",next)}catch{}
+    });
     showVideo();
   </script>
 </body>
