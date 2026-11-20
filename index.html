@@ -60,8 +60,7 @@
         else if(c==='"')quoted=true;
         else if(c===","){row.push(field);field=""}
         else if(c==="\r"){continue}
-        else if(c==="
-"){row.push(field);if(row.some(v=>v.trim()))rows.push(row);row=[];field=""}
+        else if(c==="\n"){row.push(field);if(row.some(v=>v.trim()))rows.push(row);row=[];field=""}
         else field+=c;
       }
       row.push(field);if(row.some(v=>v.trim()))rows.push(row);
