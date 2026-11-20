@@ -73,9 +73,18 @@
     async function loadVideos(){
       const gallery=document.getElementById("gallery"),status=document.getElementById("status");
       try{
-        const response=await fetch("./DATA.CSV",{cache:"no-store"});
-        if(!response.ok)throw new Error("Could not load DATA.CSV ("+response.status+").");
-        const rows=parseCSV((await response.text()).replace(/^\uFEFF/,""));
+        const controller=new AbortController();
+        const timeout=setTimeout(()=>controller.abort(),10000);
+        let csvText="";
+        try{
+          const response=await fetch("https://raw.githubusercontent.com/otizemlanetzag/WeTube/main/DATA.CSV?t="+Date.now(),{cache:"no-store",signal:controller.signal});
+          if(!response.ok)throw new Error("GitHub returned HTTP "+response.status+" while loading DATA.CSV.");
+          csvText=await response.text();
+        }catch(error){
+          if(error.name==="AbortError")throw new Error("Loading DATA.CSV timed out. Please try again.");
+          throw new Error("Could not load DATA.CSV from GitHub: "+error.message);
+        }finally{clearTimeout(timeout)}
+        const rows=parseCSV(csvText.replace(/^\uFEFF/,""));
         const videos=rows.slice(1).filter(r=>r.length>=3&&r[0].trim()&&r[1].trim()&&r[2].trim()&&isArchiveURL(r[1].trim())&&isArchiveURL(r[2].trim()));
         if(!videos.length){status.textContent="No valid videos yet. DATA.CSV must contain an Internet Archive video link and an Internet Archive thumbnail link in each row.";return}
         status.hidden=true;
