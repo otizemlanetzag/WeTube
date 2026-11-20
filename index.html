@@ -8,7 +8,7 @@
   <style>
     :root{color-scheme:dark;--bg:#101014;--panel:#1b1b22;--text:#f5f5f7;--muted:#a5a5b0;--accent:#ff4545}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
-    header{padding:24px clamp(18px,5vw,64px);border-bottom:1px solid #303039;display:flex;align-items:center;justify-content:space-between}
+    header{padding:18px clamp(18px,5vw,64px);border-bottom:1px solid #303039;display:flex;align-items:center;justify-content:space-between;gap:16px}\n    .header-actions{display:flex;align-items:center;gap:12px}\n    .add-button,.submit-button{border:0;border-radius:9px;background:var(--accent);color:white;font:700  .95rem system-ui;padding:11px 17px;cursor:pointer}\n    .add-button:hover,.submit-button:hover{filter:brightness(1.12)}\n    dialog{width:min(520px,calc(100% - 28px));border:1px solid #393943;border-radius:16px;background:#1b1b22;color:var(--text);padding:26px;box-shadow:0 24px 80px #0009}\n    dialog::backdrop{background:#000b}\n    .form-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}\n    .form-head h2{margin:0;font-size:1.35rem}\n    .close-button{border:0;background:transparent;color:#aaa;font-size:1.6rem;cursor:pointer}\n    .field{display:block;margin:14px 0;color:#ddd;font-size:.92rem;font-weight:600}\n    .field input{display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #41414c;border-radius:8px;background:#101014;color:white;font:inherit}\n    .form-help{color:var(--muted);font-size:.83rem;margin:4px 0 16px}\n    #submit-status{min-height:1.4em;color:var(--muted);font-size:.9rem;margin:12px 0 0}\n    #submit-status.error{color:#ff8b8b}\n    .submit-button:disabled{opacity:.6;cursor:wait}
     .brand{font-size:1.8rem;font-weight:850;letter-spacing:-1px;color:var(--text);text-decoration:none}.brand span{color:var(--accent)}
     main{max-width:1400px;margin:auto;padding:32px clamp(18px,5vw,64px) 64px}
     h1{font-size:clamp(1.7rem,4vw,2.5rem);margin:0 0 24px}
@@ -20,7 +20,7 @@
   </style>
 </head>
 <body>
-  <header><a class="brand" href="./">We<span>Tube</span></a></header>
+  <header><a class="brand" href="./">We<span>Tube</span></a><div class="header-actions"><button class="add-button" id="open-add" type="button">＋ Add content</button></div></header>\n  <dialog id="add-dialog" aria-labelledby="add-heading">\n    <div class="form-head"><h2 id="add-heading">Add content</h2><button class="close-button" id="close-add" type="button" aria-label="Close">×</button></div>\n    <form id="add-form">\n      <label class="field">Title<input name="title" type="text" maxlength="200" placeholder="Video title" required></label>\n      <label class="field">Internet Archive video URL<input name="video_url" type="url" placeholder="https://...archive.org/..." required></label>\n      <label class="field">Internet Archive image URL<input name="image_url" type="url" placeholder="https://...archive.org/..." required></label>\n      <p class="form-help">All three fields are required. Video and image links must be hosted by the Internet Archive.</p>\n      <button class="submit-button" id="submit-add" type="submit">Add video</button>\n      <p id="submit-status" role="status" aria-live="polite"></p>\n    </form>\n  </dialog>
   <main>
     <h1>Discover videos</h1>
     <section id="gallery" aria-label="Videos"></section>
@@ -66,6 +66,25 @@
         sessionStorage.setItem("wetube-videos",JSON.stringify(videos));
       }catch(error){status.textContent=error.message;status.classList.add("error")}
     }
+    const addDialog=document.getElementById("add-dialog");
+    document.getElementById("open-add").addEventListener("click",()=>addDialog.showModal());
+    document.getElementById("close-add").addEventListener("click",()=>addDialog.close());
+    addDialog.addEventListener("click",event=>{if(event.target===addDialog)addDialog.close()});
+    document.getElementById("add-form").addEventListener("submit",async event=>{
+      event.preventDefault();
+      const form=event.currentTarget,button=document.getElementById("submit-add"),status=document.getElementById("submit-status");
+      const data=Object.fromEntries(new FormData(form).entries());
+      button.disabled=true;status.className="";status.textContent="Saving video to the gallery…";
+      try{
+        const response=await fetch("/api/add_video",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+        const result=await response.json().catch(()=>({error:"The server returned an invalid response."}));
+        if(!response.ok)throw new Error(result.error||"Could not add the video.");
+        status.textContent="Video added! Refreshing the gallery…";
+        form.reset();
+        setTimeout(()=>location.reload(),700);
+      }catch(error){status.className="error";status.textContent=error.message}
+      finally{button.disabled=false}
+    });
     loadVideos();
   </script>
 </body>
