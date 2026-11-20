@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101014">
+  <title>Watch - WeTube</title>
+  <style>
+    :root{color-scheme:dark;--bg:#101014;--text:#f5f5f7;--muted:#a5a5b0;--accent:#ff4545}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+    header{padding:22px clamp(18px,5vw,64px);border-bottom:1px solid #303039}.brand{font-size:1.8rem;font-weight:850;letter-spacing:-1px;color:var(--text);text-decoration:none}.brand span{color:var(--accent)}
+    main{max-width:1100px;margin:34px auto;padding:0 20px 60px}a.back{color:#ff7777;text-decoration:none;display:inline-block;margin-bottom:20px}
+    h1{font-size:clamp(1.4rem,3vw,2rem);margin:0 0 20px}.player{width:100%;aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden}
+    .player iframe,.player video{width:100%;height:100%;border:0;display:block}.external{display:inline-block;margin-top:18px;color:#ff7777}
+    #status{color:var(--muted)}.error{color:#ff8b8b}
+  </style>
+</head>
+<body>
+  <header><a class="brand" href="./">We<span>Tube</span></a></header>
+  <main>
+    <a class="back" href="./">← Back to videos</a>
+    <h1 id="title">Loading…</h1>
+    <div id="player" class="player"></div>
+    <p id="status" role="status"></p>
+    <a id="external" class="external" target="_blank" rel="noopener noreferrer" hidden>Open video in a new tab</a>
+  </main>
+  <script>
+    function parseCSV(text){
+      const rows=[];let row=[],field="",quoted=false;
+      for(let i=0;i<text.length;i++){
+        const c=text[i],next=text[i+1];
+        if(quoted){if(c==='"'&&next==='"'){field+='"';i++}else if(c==='"')quoted=false;else field+=c}
+        else if(c==='"')quoted=true;
+        else if(c===","){row.push(field);field=""}
+        else if(c==="\\r")continue;
+        else if(c==="\\n"){row.push(field);if(row.some(v=>v.trim()))rows.push(row);row=[];field=""}
+        else field+=c;
+      }
+      row.push(field);if(row.some(v=>v.trim()))rows.push(row);return rows;
+    }
+    function embedURL(raw){
+      try{
+        const u=new URL(raw),host=u.hostname.replace(/^www\\./,"");
+        if(host==="youtube.com"||host==="m.youtube.com"){const id=u.searchParams.get("v");if(id)return "https://www.youtube.com/embed/"+encodeURIComponent(id);if(u.pathname.startsWith("/embed/"))return raw}
+        if(host==="youtu.be"){const id=u.pathname.split("/").filter(Boolean)[0];if(id)return "https://www.youtube.com/embed/"+encodeURIComponent(id)}
+        if(host==="vimeo.com"){const id=u.pathname.split("/").filter(Boolean)[0];if(id&&/^\\d+$/.test(id))return "https://player.vimeo.com/video/"+id}
+        return raw;
+      }catch{return raw}
+    }
+    async function showVideo(){
+      const title=document.getElementById("title"),player=document.getElementById("player"),status=document.getElementById("status"),external=document.getElementById("external");
+      const id=Number(new URLSearchParams(location.search).get("id"));
+      if(!Number.isInteger(id)||id<0){title.textContent="Video not found";status.textContent="The video address is invalid.";status.className="error";return}
+      try{
+        const response=await fetch("./DATA.CSV",{cache:"no-store"});if(!response.ok)throw new Error("Could not load DATA.CSV.");
+        const rows=parseCSV((await response.text()).replace(/^\\uFEFF/,""));
+        const item=rows.slice(1).filter(r=>r.length>=3&&r[0].trim()&&r[1].trim()&&r[2].trim())[id];
+        if(!item)throw new Error("This video was not found in DATA.CSV.");
+        title.textContent=item[0].trim();const raw=item[1].trim();
+        const url=new URL(raw);if(!["http:","https:"].includes(url.protocol))throw new Error("The video URL must use HTTP or HTTPS.");
+        external.href=url.href;external.hidden=false;
+        if(/\\.(mp4|webm|ogg)(?:$|[?#])/i.test(url.pathname)){
+          const video=document.createElement("video");video.src=url.href;video.controls=true;video.playsInline=true;video.preload="metadata";player.append(video);
+        }else{
+          const frame=document.createElement("iframe");frame.src=embedURL(url.href);frame.title=item[0].trim();frame.allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";frame.allowFullscreen=true;frame.referrerPolicy="strict-origin-when-cross-origin";player.append(frame);
+        }
+      }catch(error){title.textContent="Unable to play video";status.textContent=error.message;status.className="error"}
+    }
+    showVideo();
+  </script>
+</body>
+</html>
