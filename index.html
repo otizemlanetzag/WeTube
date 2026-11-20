@@ -41,14 +41,17 @@
       row.push(field);if(row.some(v=>v.trim()))rows.push(row);
       return rows;
     }
+    function isArchiveURL(raw){
+      try{const u=new URL(raw);return (u.protocol==="https:"||u.protocol==="http:")&&(u.hostname==="archive.org"||u.hostname.endsWith(".archive.org"))}catch{return false}
+    }
     async function loadVideos(){
       const gallery=document.getElementById("gallery"),status=document.getElementById("status");
       try{
         const response=await fetch("./DATA.CSV",{cache:"no-store"});
         if(!response.ok)throw new Error("Could not load DATA.CSV ("+response.status+").");
         const rows=parseCSV((await response.text()).replace(/^\\uFEFF/,""));
-        const videos=rows.slice(1).filter(r=>r.length>=3&&r[0].trim()&&r[1].trim()&&r[2].trim());
-        if(!videos.length){status.textContent="No videos yet. Add entries to DATA.CSV to display them.";return}
+        const videos=rows.slice(1).filter(r=>r.length>=3&&r[0].trim()&&r[1].trim()&&r[2].trim()&&isArchiveURL(r[1].trim())&&isArchiveURL(r[2].trim()));
+        if(!videos.length){status.textContent="No valid videos yet. DATA.CSV must contain an Internet Archive video link and an Internet Archive thumbnail link in each row.";return}
         status.hidden=true;
         videos.forEach((r,i)=>{
           const title=r[0].trim(),video=r[1].trim(),image=r[2].trim();
