@@ -32,8 +32,8 @@
         if(quoted){if(c==='"'&&next==='"'){field+='"';i++}else if(c==='"')quoted=false;else field+=c}
         else if(c==='"')quoted=true;
         else if(c===","){row.push(field);field=""}
-        else if(c==="\\r")continue;
-        else if(c==="\\n"){row.push(field);if(row.some(v=>v.trim()))rows.push(row);row=[];field=""}
+        else if(c==="\r")continue;
+        else if(c==="\n"){row.push(field);if(row.some(v=>v.trim()))rows.push(row);row=[];field=""}
         else field+=c;
       }
       row.push(field);if(row.some(v=>v.trim()))rows.push(row);return rows;
@@ -51,7 +51,7 @@
       if(!Number.isInteger(id)||id<0){title.textContent="Video not found";status.textContent="The video address is invalid.";status.className="error";return}
       try{
         const response=await fetch("./DATA.CSV",{cache:"no-store"});if(!response.ok)throw new Error("Could not load DATA.CSV.");
-        const rows=parseCSV((await response.text()).replace(/^\\uFEFF/,""));
+        const rows=parseCSV((await response.text()).replace(/^\uFEFF/,""));
         const item=rows.slice(1).filter(r=>r.length>=3&&r[0].trim()&&r[1].trim()&&r[2].trim()&&isArchiveHost(new URL(r[1].trim()).hostname)&&isArchiveHost(new URL(r[2].trim()).hostname))[id];
         if(!item)throw new Error("This video was not found in DATA.CSV.");
         title.textContent=item[0].trim();const raw=item[1].trim();
