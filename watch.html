@@ -56,11 +56,13 @@
         if(!item)throw new Error("This video was not found in DATA.CSV.");
         title.textContent=item[0].trim();const raw=item[1].trim();
         const url=new URL(raw);if(!["http:","https:"].includes(url.protocol)||!isArchiveHost(url.hostname))throw new Error("WeTube only supports video links hosted by the Internet Archive.");
-        const embed=archiveEmbedURL(url);if(!embed)throw new Error("Use an Internet Archive /details/, /embed/, or /download/ video link.");
+        const directVideo=/\.(mp4|webm|ogg|ogv|mov|m4v)$/i.test(url.pathname);
         external.href=url.href;external.hidden=false;
-        if(url.pathname.startsWith("/download/")&&/\\.(mp4|webm|ogg|ogv|mov|m4v)(?:$|[?#])/i.test(url.pathname)){
+        if(directVideo){
           const video=document.createElement("video");video.src=url.href;video.controls=true;video.playsInline=true;video.preload="metadata";player.append(video);
         }else{
+          const embed=archiveEmbedURL(url);
+          if(!embed)throw new Error("Use a direct video file URL (such as MP4) or an Internet Archive /details/ or /embed/ link.");
           const frame=document.createElement("iframe");frame.src=embed;frame.title=item[0].trim();frame.allow="fullscreen";frame.allowFullscreen=true;frame.referrerPolicy="strict-origin-when-cross-origin";player.append(frame);
         }
       }catch(error){title.textContent="Unable to play video";status.textContent=error.message;status.className="error"}
